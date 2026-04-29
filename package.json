@@ -1,0 +1,23 @@
+{
+  "name": "expense-tracker-app",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Full-stack personal expense tracker (React + Express + MongoDB)",
+  "workspaces": [
+    "app/client",
+    "app/server"
+  ],
+  "scripts": {
+    "dev": "concurrently -k \"npm --workspace @finance-tracker/server run dev\" \"npm --workspace @finance-tracker/client run dev\"",
+    "build": "npm --workspace @finance-tracker/client run build",
+    "start": "npm --workspace @finance-tracker/server run start",
+    "server": "npm --workspace @finance-tracker/server run dev",
+    "client": "npm --workspace @finance-tracker/client run dev"
+  },
+  "engines": {
+    "node": ">=18.18.0"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}
