@@ -1,0 +1,38 @@
+pipeline {
+  agent any
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Install') {
+      steps {
+        sh 'npm ci'
+      }
+    }
+
+    stage('Build') {
+      steps {
+        sh 'npm run build'
+      }
+    }
+
+    stage('Docker Build') {
+      steps {
+        sh 'docker build -f docker/Dockerfile -t finance-tracker:latest .'
+      }
+    }
+  }
+
+  post {
+    success {
+      echo 'Build completed successfully.'
+    }
+    failure {
+      echo 'Build failed.'
+    }
+  }
+}
