@@ -1,38 +1,63 @@
 pipeline {
   agent any
 
+  options {
+    timestamps()
+    timeout(time: 30, unit: 'MINUTES')
+  }
+
+  environment {
+    IMAGE_NAME = 'finance-tracker'
+    IMAGE_TAG = 'latest'
+    CONTAINER_NAME = 'finance-tracker-test'
+    APP_PORT = '5000'
+  }
+
   stages {
-    stage('Checkout') {
+    stage('Clone GitHub Repository') {
       steps {
+        // Uses the same repository/branch configured in "Pipeline script from SCM"
         checkout scm
       }
     }
 
-    stage('Install') {
+    stage('Build Docker Image') {
       steps {
-        sh 'npm ci'
+        sh 'docker build -f docker/Dockerfile -t ${IMAGE_NAME}:${IMAGE_TAG} .'
       }
     }
 
-    stage('Build') {
+    stage('Run Container For Testing') {
       steps {
-        sh 'npm run build'
-      }
-    }
+        sh '''
+          # Safe restart: remove old test container if it exists
+          if [ "$(docker ps -aq -f name=^/${CONTAINER_NAME}$)" ]; then
+            docker rm -f ${CONTAINER_NAME}
+          fi
 
-    stage('Docker Build') {
-      steps {
-        sh 'docker build -f docker/Dockerfile -t finance-tracker:latest .'
+          # Start new test container
+          docker run -d \
+            --name ${CONTAINER_NAME} \
+            -p ${APP_PORT}:5000 \
+            ${IMAGE_NAME}:${IMAGE_TAG}
+
+          # Show status for easier debugging
+          docker ps --filter "name=^/${CONTAINER_NAME}$"
+        '''
       }
     }
   }
 
   post {
     success {
-      echo 'Build completed successfully.'
+      echo 'Pipeline completed successfully: image built and test container is running.'
     }
     failure {
       echo 'Build failed.'
+    }
+    always {
+      // Keep workspace clean between builds
+      cleanWs()
     }
   }
 }
