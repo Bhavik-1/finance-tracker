@@ -1,11 +1,6 @@
 pipeline {
   agent any
 
-  options {
-    timestamps()
-    timeout(time: 30, unit: 'MINUTES')
-  }
-
   environment {
     IMAGE_NAME = 'finance-tracker'
     IMAGE_TAG = 'latest'
@@ -14,10 +9,15 @@ pipeline {
   }
 
   stages {
-    stage('Clone GitHub Repository') {
+    stage('Clone Repo') {
       steps {
-        // Uses the same repository/branch configured in "Pipeline script from SCM"
-        checkout scm
+        git branch: 'main', url: 'https://github.com/Bhavik-1/finance-tracker.git'
+      }
+    }
+
+    stage('Verify') {
+      steps {
+        sh 'ls -la'
       }
     }
 
@@ -27,37 +27,21 @@ pipeline {
       }
     }
 
-    stage('Run Container For Testing') {
+    stage('Run Container') {
       steps {
         sh '''
-          # Safe restart: remove old test container if it exists
           if [ "$(docker ps -aq -f name=^/${CONTAINER_NAME}$)" ]; then
             docker rm -f ${CONTAINER_NAME}
           fi
 
-          # Start new test container
           docker run -d \
             --name ${CONTAINER_NAME} \
             -p ${APP_PORT}:5000 \
             ${IMAGE_NAME}:${IMAGE_TAG}
 
-          # Show status for easier debugging
-          docker ps --filter "name=^/${CONTAINER_NAME}$"
+          docker ps
         '''
       }
-    }
-  }
-
-  post {
-    success {
-      echo 'Pipeline completed successfully: image built and test container is running.'
-    }
-    failure {
-      echo 'Build failed.'
-    }
-    always {
-      // Keep workspace clean between builds
-      cleanWs()
     }
   }
 }
